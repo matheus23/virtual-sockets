@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use bytes::Bytes;
 use iroh_quinn_udp::{EcnCodepoint, Transmit};
 
+pub mod connector;
 pub mod endpoint;
 pub mod socket;
 pub mod switch;

@@ -59,10 +59,13 @@ impl TestEndpoint {
     }
 
     pub fn make_client_for(&mut self, server: &TestEndpoint) {
-        let mut roots = rustls::RootCertStore::empty();
-        roots.add(server.cert.cert.der().clone()).unwrap();
-        let client_config = ClientConfig::with_root_certificates(Arc::new(roots)).unwrap();
+        self.endpoint
+            .set_default_client_config(server.client_config());
+    }
 
-        self.endpoint.set_default_client_config(client_config);
+    pub fn client_config(&self) -> ClientConfig {
+        let mut roots = rustls::RootCertStore::empty();
+        roots.add(self.cert.cert.der().clone()).unwrap();
+        ClientConfig::with_root_certificates(Arc::new(roots)).unwrap()
     }
 }

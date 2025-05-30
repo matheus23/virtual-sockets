@@ -1145,6 +1145,7 @@ dependencies = [
  "n0-future",
  "rcgen",
  "rustls",
+ "rustls-pki-types",
  "tokio",
  "tokio-util",
  "tracing",

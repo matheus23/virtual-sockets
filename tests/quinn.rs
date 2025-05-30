@@ -1,46 +1,19 @@
-use std::sync::Arc;
-
-use iroh_quinn::{Endpoint, Runtime as _};
-use iroh_quinn_proto::{ClientConfig, EndpointConfig, ServerConfig};
-use virtual_sockets::{TestAddr, switch::Switch};
+use virtual_sockets::{TestAddr, endpoint::TestEndpoint, switch::Switch};
 
 #[tokio::test]
 async fn test_connect_with_virtual_socket() {
-    let runtime = Arc::new(iroh_quinn::TokioRuntime);
-
     // Virtual sockets setup
     let switch = Switch::new();
     let server_socket = switch.connect_socket(TestAddr(42)).await;
     let client_socket = switch.connect_socket(TestAddr(111)).await;
     let server_addr = server_socket.addr;
 
-    // Cert setup
-    let cert = rcgen::generate_simple_self_signed(vec!["localhost".into()]).unwrap();
-    let key = rustls::pki_types::PrivateKeyDer::Pkcs8(cert.key_pair.serialize_der().into());
-    let mut roots = rustls::RootCertStore::empty();
-    roots.add(cert.cert.der().clone()).unwrap();
-
-    let server_config = ServerConfig::with_single_cert(vec![cert.cert.der().clone()], key).unwrap();
-    let client_config = ClientConfig::with_root_certificates(Arc::new(roots)).unwrap();
-
-    let server_ep = Endpoint::new_with_abstract_socket(
-        EndpointConfig::default(),
-        Some(server_config),
-        Box::new(server_socket),
-        runtime.clone(),
-    )
-    .unwrap();
-    let mut client_ep = Endpoint::new_with_abstract_socket(
-        EndpointConfig::default(),
-        None,
-        Box::new(client_socket),
-        runtime.clone(),
-    )
-    .unwrap();
-    client_ep.set_default_client_config(client_config);
+    let server_ep = TestEndpoint::server(server_socket);
+    let mut client_ep = TestEndpoint::client(client_socket);
+    client_ep.make_client_for(&server_ep);
 
     // Run server task
-    runtime.spawn(Box::pin({
+    tokio::spawn({
         let server_ep = server_ep.clone();
         async move {
             // Simple echo loop
@@ -49,7 +22,7 @@ async fn test_connect_with_virtual_socket() {
                 conn.close(0u32.into(), b"bye!");
             }
         }
-    }));
+    });
 
     // server_socket.set_paused(true);
     // let mut wiretap = server_socket.wiretap();

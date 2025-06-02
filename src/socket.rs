@@ -71,12 +71,12 @@ impl VirtualSocket {
 
     pub async fn send_datagram(
         &self,
-        destination: SocketAddr,
+        destination: impl Into<SocketAddr>,
         contents: Bytes,
     ) -> std::io::Result<()> {
         let transmit = OwnedTransmit {
             contents,
-            destination,
+            destination: destination.into(),
             ecn: None,
             segment_size: None,
             src_ip: self.addr,

@@ -85,29 +85,28 @@ mod tests {
         tokio::spawn({
             let server_ep = server_ep.clone();
             async move {
-                let conn = server_ep.accept().await.unwrap().await.unwrap();
-                let mut stream = conn.accept_uni().await.unwrap();
+                let conn = server_ep.accept().await.unwrap().await?;
+                let mut stream = conn.accept_uni().await?;
 
                 // read to completion
-                while let Some(_chunk) = stream.read_chunk(10_000, true).await.unwrap() {}
+                while let Some(_chunk) = stream.read_chunk(10_000, true).await? {}
 
                 conn.close(0u32.into(), b"bye!");
+                TestResult::Ok(())
             }
         });
 
         let conn = client_ep
-            .connect_with(server_ep.client_config(), server_addr, "localhost")
-            .unwrap()
-            .await
-            .unwrap();
+            .connect_with(server_ep.client_config(), server_addr, "localhost")?
+            .await?;
 
-        let mut stream = conn.open_uni().await.unwrap();
+        let mut stream = conn.open_uni().await?;
         let buf = Bytes::copy_from_slice(&b"Hello, world!".repeat(1000));
         const NUM: usize = 1_000;
         for _ in 0..NUM {
-            stream.write_chunk(buf.clone()).await.unwrap();
+            stream.write_chunk(buf.clone()).await?;
         }
-        stream.finish().unwrap();
+        stream.finish()?;
 
         conn.closed().await;
 
